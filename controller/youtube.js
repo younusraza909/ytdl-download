@@ -23,14 +23,15 @@ exports.getVideoInfo = async (req, res) => {
       approxSize: format.approxSize,
     }));
 
-    res.status(200).json({ availableFormats, info });
+    res.status(200).json({ availableFormats });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching video information" });
   }
 };
 
-exports.downloadVideo = async (req, res) => {
+// this function download video on server with progress
+exports.downloadVideoOnServer = async (req, res) => {
   const videoUrl = req.query.url;
   const videoTag = req.query.itag;
   const videoFormat = req.query.format;
@@ -39,8 +40,6 @@ exports.downloadVideo = async (req, res) => {
     return res.status(400).json({ message: "Missing video URL" });
   }
   const info = await ytdl.getInfo(videoUrl);
-
-  ytdl.downloadFromInfo(info, { quality: videoTag });
 
   const outputFilePath = `${info.videoDetails.title}.${videoFormat}`;
   const outputStream = fs.createWriteStream(outputFilePath);
@@ -90,4 +89,29 @@ exports.downloadVideo = async (req, res) => {
       console.log("E rror");
       res.status(500).json({ message: "Error downloading video" });
     });
+};
+
+exports.downloadVideo = async (req, res) => {
+  try {
+    const videoUrl = req.query.url;
+    const videoTag = req.query.itag;
+
+    if (!videoUrl) {
+      return res.status(400).json({ message: "Missing video URL" });
+    }
+    const info = await ytdl.getInfo(videoUrl);
+
+    const format = info.formats.filter(
+      (video) => video.itag === Number(videoTag)
+    )[0];
+
+    if (!format || format.length === 0) {
+      res.status(404).json({ message: "Format not found" });
+    }
+
+    res.status(200).json({ format });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching video information" });
+  }
 };
