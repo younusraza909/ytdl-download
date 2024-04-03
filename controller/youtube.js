@@ -23,7 +23,7 @@ exports.getVideoInfo = async (req, res) => {
       approxSize: format.approxSize,
     }));
 
-    res.status(200).json({ availableFormats });
+    res.status(200).json({ availableFormats, info });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching video information" });
@@ -46,24 +46,48 @@ exports.downloadVideo = async (req, res) => {
   const outputStream = fs.createWriteStream(outputFilePath);
 
   const videoStream = ytdl.downloadFromInfo(info, { quality: videoTag });
+
+  res.writeHead(200, {
+    "Content-Type": "application/json",
+  });
+
   videoStream.pipe(outputStream);
 
+  const format = info.formats.filter(
+    (video) => video.itag === Number(videoTag)
+  )[0];
+
+  if (!format || format.length === 0) {
+    res.status(404).json({ message: "Format not found" });
+  }
+
   let downloadedBytes = 0;
-  let totalBytes = parseInt(info.videoDetails.lengthSeconds) * 1000000;
+  const totalBytes = +format?.contentLength;
+
+  const calculateProgress = () => {
+    if (totalBytes) {
+      const progress = (downloadedBytes / totalBytes) * 100;
+      return progress.toFixed(2) + "%";
+    } else {
+      return "Downloading...";
+    }
+  };
 
   videoStream.on("data", (chunk) => {
     downloadedBytes += chunk.length;
-    const progress = (downloadedBytes / totalBytes) * 100;
-    console.log(JSON.stringify({ progress: progress.toFixed(2) + "%" }));
-    res.write(JSON.stringify({ progress: progress.toFixed(2) + "%" }));
+    const progress = calculateProgress();
+
+    res.write(JSON.stringify({ progress: progress }));
   });
 
   outputStream
     .on("finish", () => {
-      res.status(200).json({ message: "Video Downloaded Successfully" });
+      console.log("Finish");
+      res.end();
     })
     .on("error", (error) => {
       console.error(error);
+      console.log("E rror");
       res.status(500).json({ message: "Error downloading video" });
     });
 };
