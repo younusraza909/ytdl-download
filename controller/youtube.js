@@ -113,7 +113,9 @@ exports.downloadVideo = async (req, res) => {
       res.status(404).json({ message: "Format not found" });
     }
 
-    return res.status(200).json({ format });
+    return res
+      .status(200)
+      .json({ format, videoTitle: info.videoDetails.title });
   } catch (error) {
     console.error(error);
     return res
