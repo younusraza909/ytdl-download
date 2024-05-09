@@ -23,10 +23,14 @@ exports.getVideoInfo = async (req, res) => {
       approxSize: format.approxSize,
     }));
 
-    res.status(200).json({ availableFormats });
+    return res
+      .status(200)
+      .json({ availableFormats, videoTitle: info.videoDetails.title });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error fetching video information" });
+    return res
+      .status(500)
+      .json({ message: "Error fetching video information" });
   }
 };
 
@@ -57,7 +61,7 @@ exports.downloadVideoOnServer = async (req, res) => {
   )[0];
 
   if (!format || format.length === 0) {
-    res.status(404).json({ message: "Format not found" });
+    return res.status(404).json({ message: "Format not found" });
   }
 
   let downloadedBytes = 0;
@@ -82,12 +86,12 @@ exports.downloadVideoOnServer = async (req, res) => {
   outputStream
     .on("finish", () => {
       console.log("Finish");
-      res.end();
+      return res.end();
     })
     .on("error", (error) => {
       console.error(error);
       console.log("E rror");
-      res.status(500).json({ message: "Error downloading video" });
+      return res.status(500).json({ message: "Error downloading video" });
     });
 };
 
@@ -109,9 +113,11 @@ exports.downloadVideo = async (req, res) => {
       res.status(404).json({ message: "Format not found" });
     }
 
-    res.status(200).json({ format });
+    return res.status(200).json({ format });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error fetching video information" });
+    return res
+      .status(500)
+      .json({ message: "Error fetching video information" });
   }
 };
